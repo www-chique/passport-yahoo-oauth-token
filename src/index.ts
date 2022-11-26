@@ -118,8 +118,8 @@ export default class YahooOauthTokenStrategy extends OAuth2Strategy {
 				grant_type: 'authorization_code',
 				redirect_uri: 'oob', // Ignore redirect uri
 			},
-			(error, accessToken, refreshToken, results) => {
-				if (error) return this.error(error);
+			(errorOAuth, accessToken, refreshToken, results) => {
+				if (errorOAuth) return this.error(errorOAuth);
 				if (!accessToken) return this.fail({ message: `Error exchanging access code for token` });
 
 				this._loadUserProfile(accessToken, (error: any, profile: any) => {
@@ -155,7 +155,10 @@ export default class YahooOauthTokenStrategy extends OAuth2Strategy {
 	 * @param {String} accessToken
 	 * @param {Function} done
 	 */
-	userProfile(accessToken: string, done: Function) {
+	userProfile(
+		accessToken: string,
+		done: (error: Error | null | undefined, profile?: TParsedProfile | undefined) => void,
+	) {
 		this._oauth2.get(this._profileURL, accessToken, (error, body, _res) => {
 			if (error) {
 				return done(new InternalOAuthError('Failed to fetch user profile', error));
@@ -169,7 +172,7 @@ export default class YahooOauthTokenStrategy extends OAuth2Strategy {
 
 				done(null, profile);
 			} catch (e) {
-				done(e);
+				done(e as Error);
 			}
 		});
 	}
