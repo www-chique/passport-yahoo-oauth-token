@@ -1,0 +1,16 @@
+/node_modules/
+/dist/
+/lib
+/build/
+.DS_Store
+pnpm-lock.yaml
+**/.history
+/log/
+.test-report/*
+!.test-report/boilerplate.html
+thunderEnvironment.db
+/secret/
+.env*
+!.env.project
+!.env.vault
+.flaskenv*
