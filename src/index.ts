@@ -79,9 +79,9 @@ export default class YahooOauthTokenStrategy extends OAuth2Strategy {
 	constructor(options: TConstructorOptions, verify: OAuth2Strategy.VerifyFunction) {
 		// Append default options
 		const preparedOptions: TStrategyOptions = {
-			tokenURL: options.tokenURL ?? `https://api.login.yahoo.com/oauth2/request_auth`,
-			authorizationURL: options.authorizationURL ?? `https://api.login.yahoo.com/oauth2/get_token`,
 			...options,
+			tokenURL: options.tokenURL ?? `https://api.login.yahoo.com/oauth2/get_token`,
+			authorizationURL: options.authorizationURL ?? `https://api.login.yahoo.com/oauth2/request_auth`,
 		};
 
 		// Call parent constructor
