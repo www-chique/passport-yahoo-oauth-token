@@ -122,8 +122,8 @@ export default class YahooOauthTokenStrategy extends OAuth2Strategy {
 				if (errorOAuth) return this.error(errorOAuth);
 				if (!accessToken) return this.fail({ message: `Error exchanging access code for token` });
 
-				this._loadUserProfile(accessToken, (error: any, profile: any) => {
-					if (error) return this.error(error);
+				this._loadUserProfile(accessToken, (errorUserProfile: any, profile: any) => {
+					if (errorUserProfile) return this.error(errorUserProfile);
 
 					const verified = (error: any, user: Express.User, info: object | undefined) => {
 						if (error) return this.error(error);
@@ -227,9 +227,9 @@ export default class YahooOauthTokenStrategy extends OAuth2Strategy {
 		profile.email = json.email || '';
 
 		if (json.profile_images) {
-			profile.photos = Object.entries(json.profile_images).map(([key, value]) => ({
-				value: value,
-				type: key,
+			profile.photos = Object.entries(json.profile_images).map(([type, value]) => ({
+				type,
+				value,
 			}));
 		}
 
