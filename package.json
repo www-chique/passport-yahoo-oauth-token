@@ -1,6 +1,6 @@
 {
 	"name": "passport-yahoo-oauth-token",
-	"version": "0.0.5",
+	"version": "0.0.6",
 	"description": "Passport Yahoo authentication strategy using OAuth2 tokens",
 	"author": "Satadru Chique",
 	"license": "MIT",

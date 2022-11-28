@@ -35,44 +35,42 @@ type TConstructorOptions = Pick<TStrategyOptions, 'clientID' | 'clientSecret'> &
 	Partial<Omit<TStrategyOptions, 'clientID' | 'clientSecret'>> & {
 		profileURL?: string;
 		accessTokenField?: string;
+		refreshTokenField?: string;
+		accessCodeField?: string;
 	};
-type TParsedProfile = {
-	provider: string;
-	id: string;
-	displayName: string;
-	name?: {
-		familyName: string;
-		givenName: string;
-	};
-	email?: string;
-	photos?: {
-		type: string;
-		value: string;
-	}[];
-	picture?: string;
-	_json: any;
-	_raw?: any;
-};
 type TYahooProfile = {
-	birthdate: string;
+	birthdate?: string;
 	email: string;
-	email_verified: boolean;
-	family_name: string;
-	gender: string;
-	given_name: string;
-	locale: string;
+	email_verified?: boolean;
+	family_name?: string;
+	gender?: string;
+	given_name?: string;
+	locale?: string;
 	name: string;
-	nickname: string;
-	picture: string;
-	profile_images: {
+	nickname?: string;
+	picture?: string;
+	profile_images?: {
 		[size: string]: string;
 	};
 	sub: string;
 };
 
+type TParsedProfile = TYahooProfile & {
+	provider: string;
+	id: string;
+	photos?: {
+		type: string;
+		value: string;
+	}[];
+	_json: any;
+	_raw?: any;
+};
+
 export default class YahooOauthTokenStrategy extends OAuth2Strategy {
 	[x: string]: any;
 	private _profileURL: string;
+	private _accessTokenField: string;
+	private _refreshTokenField: string;
 	private _accessCodeField: string;
 	private _passReqToCallback: boolean;
 
@@ -94,7 +92,9 @@ export default class YahooOauthTokenStrategy extends OAuth2Strategy {
 		this._profileURL = options.profileURL || `https://api.login.yahoo.com/openid/v1/userinfo`;
 
 		// Set access token field and passReqToCallback
-		this._accessCodeField = options.accessTokenField || 'access_token';
+		this._accessTokenField = options.accessTokenField || 'access_token';
+		this._accessCodeField = options.accessCodeField || 'code';
+		this._refreshTokenField = options.refreshTokenField || 'refresh_token';
 		this._passReqToCallback = options.passReqToCallback ?? false;
 
 		// Set OAuth2 options
@@ -108,38 +108,52 @@ export default class YahooOauthTokenStrategy extends OAuth2Strategy {
 	 */
 	authenticate(req: Request, _options: unknown) {
 		const accessCode = this.lookup(req, this._accessCodeField);
+		const accessToken = this.lookup(req, this._accessTokenField);
+		const refreshToken = this.lookup(req, this._refreshTokenField);
 
-		if (!accessCode) return this.fail({ message: `You should provide ${this._accessCodeField}` });
+		if (!accessCode && !accessToken)
+			return this.fail({ message: `You should provide ${this._accessCodeField} or ${this._accessTokenField}` });
 
-		// Exchange code for real accessToken as yahoo does not provide it
-		this._oauth2.getOAuthAccessToken(
-			accessCode,
-			{
-				grant_type: 'authorization_code',
-				redirect_uri: 'oob', // Ignore redirect uri
-			},
-			(errorOAuth, accessToken, refreshToken, results) => {
-				if (errorOAuth) return this.error(errorOAuth);
-				if (!accessToken) return this.fail({ message: `Error exchanging access code for token` });
+		if (!accessToken) {
+			// If no access token is present, try to obtain an access token using an authorization code.
+			this._oauth2.getOAuthAccessToken(
+				accessCode,
+				{
+					grant_type: 'authorization_code',
+					redirect_uri: 'oob', // Ignore redirect uri
+				},
+				(error, accessTokenExchanged, refreshTokenExchanged, _results) => {
+					if (error) return this.error(error);
+					if (!accessTokenExchanged)
+						return this.fail({ message: `Error exchanging authorization code for access token` });
 
-				this._loadUserProfile(accessToken, (errorUserProfile: any, profile: any) => {
-					if (errorUserProfile) return this.error(errorUserProfile);
+					// Call user profile
+					this._returnUserProfile(accessTokenExchanged, refreshTokenExchanged ?? refreshToken, req);
+				},
+			);
+		} else {
+			// Call user profile
+			this._returnUserProfile(accessToken, refreshToken, req);
+		}
+	}
+	private _returnUserProfile(accessToken: string, refreshToken: string | undefined, req: Request) {
+		// Load user profile
+		this._loadUserProfile(accessToken, (errorUserProfile: any, profile: any) => {
+			if (errorUserProfile) return this.error(errorUserProfile);
 
-					const verified = (error: any, user: Express.User, info: object | undefined) => {
-						if (error) return this.error(error);
-						if (!user) return this.fail(info);
+			const verified = (error: any, user: Express.User, info: object | undefined) => {
+				if (error) return this.error(error);
+				if (!user) return this.fail(info);
 
-						return this.success(user, info);
-					};
+				return this.success(user, info);
+			};
 
-					if (this._passReqToCallback) {
-						this._verify(req, accessToken, refreshToken, profile, verified);
-					} else {
-						this._verify(accessToken, refreshToken, profile, verified);
-					}
-				});
-			},
-		);
+			if (this._passReqToCallback) {
+				this._verify(req, accessToken, refreshToken, profile, verified);
+			} else {
+				this._verify(accessToken, refreshToken, profile, verified);
+			}
+		});
 	}
 
 	/**
@@ -150,7 +164,7 @@ export default class YahooOauthTokenStrategy extends OAuth2Strategy {
 	 *   - `provider`         always set to `yahoo`
 	 *   - `id`               the user's Yahoo ID
 	 *   - `username`         the user's Yahoo username
-	 *   - `displayName`      the user's full name
+	 *   - `name`      the user's full name
 	 *
 	 * @param {String} accessToken
 	 * @param {Function} done
@@ -208,23 +222,13 @@ export default class YahooOauthTokenStrategy extends OAuth2Strategy {
 	 */
 
 	static parseProfile(json: TYahooProfile): TParsedProfile {
-		const { name, ...rest } = json ?? {};
 		const profile: TParsedProfile = {
-			...rest,
+			...json,
 			provider: 'yahoo',
 			id: json.sub,
-			displayName: name || '',
+			email: json.email || '',
 			_json: json,
 		};
-
-		if (json.family_name || json.given_name) {
-			profile.name = {
-				familyName: json.family_name,
-				givenName: json.given_name,
-			};
-		}
-
-		profile.email = json.email || '';
 
 		if (json.profile_images) {
 			profile.photos = Object.entries(json.profile_images).map(([type, value]) => ({

@@ -5,7 +5,8 @@ access tokens (or better authorization code) using the OAuth 2.0 API.
 
 This module is inspired by [passport-google-oauth-token](https://github.com/zgid123/passport-google-oauth-token).
 
-This module lets you authenticate using Yahoo "Access Code" / "Authorization Code" in your Node.js applications. Since Yahoo does not provide access token directly, this module takes the authorization code from the client login flow, and exchanges it for access token, subsequently returning the user's profile data.
+This module lets you authenticate using Yahoo **Access / Authorization Code** or **Access Token** in your Node.js applications.
+Since Yahoo does not provide access token directly, this module can the authorization code from the client login flow, and exchanges it for access token, subsequently returning the user's profile data. If access token is available, this step is skipped.
 
 By plugging into Passport, Yahoo authentication can be easily and
 unobtrusively integrated into any application or framework that supports
@@ -57,17 +58,21 @@ app.post('/auth/yahoo/token', passport.authenticate('yahoo-oauth-token'), (req, 
 
 ### Client Requests
 
-Clients can send requests to routes that use passport-yahoo-oauth-token authentication using `query parms`, `body`, or `HTTP headers`. Clients will need to transmit the `access_token`, which is the Authorization Code provided by yahoo api when client successfully logs in and approves the app.
+Clients can send requests to routes that use passport-yahoo-oauth-token authentication using `query parms`, `body`, or `HTTP headers`. Clients will need to transmit the `code` (Authorization Code) or `access_token`, provided by yahoo api when client successfully logs in and approves the app.
 
 ## Options
 
-| Field            | Description                      | Default Value                                   |
-| ---------------- | -------------------------------- | ----------------------------------------------- |
-| clientID         | Yahoo's client id                |                                                 |
-| clientSecret     | Yahoo's client secret            |                                                 |
-| tokenURL         | Yahoo's oauth2 token url         | https://api.login.yahoo.com/oauth2/request_auth |
-| profileURL       | Yahoo's scope profile url        | https://api.login.yahoo.com/openid/v1/userinfo  |
-| authorizationURL | Yahoo's oauth2 authorization url | https://api.login.yahoo.com/oauth2/get_token    |
+| Field             | Description                      | Default Value                                   |
+| ----------------- | -------------------------------- | ----------------------------------------------- |
+| clientID          | Yahoo's client id                | (required)                                      |
+| clientSecret      | Yahoo's client secret            | (required)                                      |
+| tokenURL          | Yahoo's oauth2 token url         | https://api.login.yahoo.com/oauth2/request_auth |
+| profileURL        | Yahoo's scope profile url        | https://api.login.yahoo.com/openid/v1/userinfo  |
+| authorizationURL  | Yahoo's oauth2 authorization url | https://api.login.yahoo.com/oauth2/get_token    |
+| passReqToCallback | Yahoo's oauth2 authorization url | https://api.login.yahoo.com/oauth2/get_token    |
+| accessTokenField  | Param containing access token    | access_token                                    |
+| accessCodeField   | Param containing code            | code                                            |
+| refreshTokenField | Param containing refresh token   | refresh_token                                   |
 
 ## Profile Example
 
