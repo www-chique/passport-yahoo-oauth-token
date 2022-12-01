@@ -6,7 +6,7 @@ access tokens (or better authorization code) using the OAuth 2.0 API.
 This module is inspired by [passport-google-oauth-token](https://github.com/zgid123/passport-google-oauth-token).
 
 This module lets you authenticate using Yahoo **Access / Authorization Code** or **Access Token** in your Node.js applications.
-Since Yahoo does not provide access token directly, this module can the authorization code from the client login flow, and exchanges it for access token, subsequently returning the user's profile data. If access token is available, this step is skipped.
+Since Yahoo does not provide access token directly, this module can take the authorization code from the client login flow, and exchange it for access token, subsequently returning the user's profile data. If access token is available (provided), this step is skipped.
 
 By plugging into Passport, Yahoo authentication can be easily and
 unobtrusively integrated into any application or framework that supports
